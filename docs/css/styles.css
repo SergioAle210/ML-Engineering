@@ -131,6 +131,12 @@ a {
     letter-spacing: -0.01em;
 }
 
+.section-intro {
+    max-width: 68ch;
+    margin-bottom: 28px;
+    color: var(--text-muted);
+    line-height: 1.6;
+}
 /* Cards */
 
 .cards {
@@ -140,6 +146,9 @@ a {
     padding-bottom: 48px;
 }
 
+.activity-list {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 360px));
+}
 .card {
     padding: 26px;
     border: 1px solid var(--border);
