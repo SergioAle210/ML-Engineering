@@ -7,6 +7,8 @@ from .pipeline import (
 )
 from .extraction import DataExtractor
 from .filtering import DataFilter
+from .model import build_model_pipeline
+from .evaluation import ClassificationMetrics, evaluate_model
 
 __all__ = [
     "build_pipeline",
@@ -16,6 +18,9 @@ __all__ = [
     "split_dataset",
     "DataExtractor",
     "DataFilter",
+    "build_model_pipeline",
+    "evaluate_model",
+    "ClassificationMetrics",
 ]
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
