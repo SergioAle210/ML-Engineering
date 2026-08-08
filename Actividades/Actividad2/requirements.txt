@@ -1,0 +1,17 @@
+# Core pipeline (all platforms)
+pillow
+pillow-heif
+pandas
+numpy
+scipy
+requests
+
+# OCR backend: macOS uses Apple's Vision framework (src/ocr_backend_vision.py).
+# Windows/Linux fall back to Tesseract (src/ocr_backend_tesseract.py), which
+# also needs the `tesseract` binary installed separately -- see README.
+pyobjc-framework-Vision; sys_platform == "darwin"
+pyobjc-framework-Quartz; sys_platform == "darwin"
+
+# Dashboard
+streamlit
+plotly

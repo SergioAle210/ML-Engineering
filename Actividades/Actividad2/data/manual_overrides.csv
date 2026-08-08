@@ -1,0 +1,3 @@
+filename,total_gtq,gallons,override_note
+IMG_8304.HEIC,150.0,3.651,OCR gallons digits disagreed across passes (3.55x vs 365x); confirmed 3.651 by visual inspection of the LCD crop
+IMG_8322.HEIC,150.0,3.564,"Glare on LCD occluded a gallons digit, no OCR pass produced a corroborated reading; confirmed 3.564 by visual inspection"
