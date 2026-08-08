@@ -39,6 +39,7 @@ from scipy import ndimage
 
 from src.ocr_common import (
     EXPECTED_TOTAL_GTQ,
+    PriceBoardReading,
     PumpReading,
     digits_only,
     parse_gallons_from_digits,
@@ -180,3 +181,19 @@ def read_pump_display(jpeg_path: Path) -> PumpReading:
         reading.parse_ok = True
 
     return reading
+
+
+def read_price_board(jpeg_path: Path, crops_dir: Path) -> PriceBoardReading:
+    """Not implemented yet. The price-board reader on macOS (see
+    read_price_board in ocr_backend_vision.py) matches each LCD to its fuel
+    type by locating the printed label text next to it, which needs Vision's
+    whole-image text+label OCR. Tesseract's 7-segment model here only reads
+    isolated digit crops located by LCD backlight color (see
+    locate_lcd_bbox) -- it has no equivalent label-detection step, and this
+    board has four LCDs instead of the single one that geometry assumes.
+    Raising clearly instead of guessing which LCD is which fuel.
+    """
+    raise NotImplementedError(
+        "Price board OCR is only implemented for macOS (Vision). "
+        "Process these photos on a Mac, or add label-aware LCD detection here."
+    )

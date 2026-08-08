@@ -11,6 +11,11 @@ DIGITS_ONLY_RE = re.compile(r"\d+")
 # documented fallback when OCR can't confidently read the total digits.
 EXPECTED_TOTAL_GTQ = 150.00
 
+# The four fuel types posted on the station's price board, left to right.
+# Label text is matched case-insensitively against OCR output, so keep these
+# lowercase and free of accents.
+FUEL_TYPES = ["diesel", "regular", "super", "v-power"]
+
 
 @dataclass
 class PumpReading:
@@ -21,6 +26,21 @@ class PumpReading:
     gallons_raw: str | None = None
     anchors_found: bool = False
     parse_ok: bool = False
+    notes: list[str] = field(default_factory=list)
+
+
+@dataclass
+class PriceBoardReading:
+    """The four small price-per-gallon LCDs are much smaller and noisier
+    than the main pump display, so this never claims a confident digit
+    reading -- prices_gtq is always None. prices_raw holds whatever OCR
+    guessed (unreliable, shown only as a hint) and crop_paths points to the
+    saved close-up of each LCD so a human can read and confirm it in the
+    dashboard, the same review workflow already used for uncertain gallons.
+    """
+    prices_gtq: dict[str, float | None] = field(default_factory=lambda: {f: None for f in FUEL_TYPES})
+    prices_raw: dict[str, str | None] = field(default_factory=lambda: {f: None for f in FUEL_TYPES})
+    crop_paths: dict[str, str | None] = field(default_factory=lambda: {f: None for f in FUEL_TYPES})
     notes: list[str] = field(default_factory=list)
 
 

@@ -12,7 +12,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.pipeline import save_manual_override
+from src.pipeline import FUEL_COLUMNS, save_manual_override, save_price_board_override
 
 ROOT = Path(__file__).resolve().parent
 DATASET_CSV = ROOT / "data" / "processed" / "gasolina_dataset.csv"
@@ -23,6 +23,9 @@ st.set_page_config(page_title="Bitácora de Gasolina", page_icon="⛽", layout="
 ACCENT = "#b8792b"
 GOOD = "#2e7d5b"
 WARN = "#b3721f"
+
+FUEL_LABELS = {"diesel": "Diesel", "regular": "Regular", "super": "Súper", "vpower": "V-Power"}
+FUEL_COLORS = {"diesel": "#6b7280", "regular": "#c9a227", "super": ACCENT, "vpower": "#b03a2e"}
 
 
 @st.cache_data
@@ -38,6 +41,17 @@ if not DATASET_CSV.exists():
 
 df = load_data(DATASET_CSV, DATASET_CSV.stat().st_mtime)
 valid = df[df["parse_ok"]].copy()
+
+with st.sidebar:
+    st.subheader("Descargar datos")
+    st.download_button(
+        "Bitácora completa (.csv)",
+        data=DATASET_CSV.read_bytes(),
+        file_name="gasolina_dataset.csv",
+        mime="text/csv",
+        width="stretch",
+        help="Incluye tu compra de Súper y los 4 precios del tablero.",
+    )
 
 if valid.empty:
     st.warning("No readings have been resolved yet (all rows still need review).")
@@ -139,24 +153,81 @@ with right:
     st.map(pd.DataFrame({"lat": [latest["gps_latitude"]], "lon": [latest["gps_longitude"]]}), size=20)
 
 st.divider()
+st.header("Precios del tablero por combustible", anchor=False)
+st.caption(
+    "Precio por galón posteado en la estación para los cuatro combustibles ese día "
+    "(distinto de lo que pagaste vos, que siempre es Súper). Las 4 pantallitas del "
+    "tablero son muy chicas para leerlas de forma confiable de forma automática, así "
+    "que quedan pendientes de confirmación manual (ver abajo) hasta que las revisés."
+)
+
+board_confirmed = df.dropna(subset=[f"price_{c}_gtq" for c in FUEL_COLUMNS])
+if board_confirmed.empty:
+    st.info("Todavía no hay ningún precio del tablero confirmado — usá la revisión manual más abajo.")
+else:
+    latest_board = board_confirmed.iloc[-1]
+    cols = st.columns(len(FUEL_COLUMNS))
+    for col, fuel_col in zip(cols, FUEL_COLUMNS):
+        value = latest_board.get(f"price_{fuel_col}_gtq")
+        col.metric(FUEL_LABELS[fuel_col], f"Q{value:.2f}/gal" if pd.notna(value) else "—")
+
+    board_fig = go.Figure()
+    for fuel_col in FUEL_COLUMNS:
+        gtq_col = f"price_{fuel_col}_gtq"
+        series = df[df[gtq_col].notna()]
+        board_fig.add_trace(go.Scatter(
+            x=series["dt"], y=series[gtq_col],
+            mode="lines+markers", name=FUEL_LABELS[fuel_col],
+            line=dict(color=FUEL_COLORS[fuel_col], width=2),
+            hovertemplate=f"{FUEL_LABELS[fuel_col]}<br>" + "%{x|%d %b %Y}<br>Q%{y:.2f}/gal<extra></extra>",
+        ))
+    board_fig.update_layout(
+        height=320, margin=dict(l=10, r=10, t=10, b=10),
+        yaxis=dict(title="Q/gal", tickprefix="Q"),
+        xaxis=dict(title=None),
+        plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02),
+    )
+    st.plotly_chart(board_fig, width="stretch")
+
+board_pending = int(df["board_needs_review"].sum())
+if board_pending:
+    st.warning(f"{board_pending}/{len(df)} foto(s) con precios del tablero sin confirmar.")
+else:
+    st.success("Todos los precios del tablero están confirmados.")
+
+st.divider()
 st.header("Revisión manual", anchor=False)
 st.caption(
     "El OCR no siempre está seguro de lo que leyó (brillos, reflejos, dígitos ambiguos). "
-    "Revisá la foto contra el valor extraído y corregilo si hace falta — la corrección queda "
-    "guardada en `data/manual_overrides.csv` y mejora la base para la predicción futura."
+    "Revisá la foto contra el valor extraído y corregilo si hace falta — las correcciones quedan "
+    "guardadas en `data/manual_overrides.csv` (tu carga) y `data/price_board_overrides.csv` (tablero)."
 )
 
 review_options = df.sort_values("dt", ascending=False)
 n_pending = int((review_options["needs_review"] & (review_options["data_source"] != "manual_override")).sum())
+n_board_pending = int(review_options["board_needs_review"].sum())
 
-if n_pending:
-    st.badge(f"{n_pending} pendiente(s) de revisar", icon=":material/warning:", color="orange")
-else:
-    st.badge("Todo revisado", icon=":material/check_circle:", color="green")
+badge_col1, badge_col2 = st.columns(2)
+with badge_col1:
+    if n_pending:
+        st.badge(f"{n_pending} carga(s) pendiente(s)", icon=":material/warning:", color="orange")
+    else:
+        st.badge("Cargas: todo revisado", icon=":material/check_circle:", color="green")
+with badge_col2:
+    if n_board_pending:
+        st.badge(f"{n_board_pending} tablero(s) pendiente(s)", icon=":material/warning:", color="orange")
+    else:
+        st.badge("Tablero: todo revisado", icon=":material/check_circle:", color="green")
 
 
 def _row_label(row) -> str:
-    flag = " · ⚠️ necesita revisión" if row["needs_review"] and row["data_source"] != "manual_override" else ""
+    flags = []
+    if row["needs_review"] and row["data_source"] != "manual_override":
+        flags.append("carga")
+    if row["board_needs_review"]:
+        flags.append("tablero")
+    flag = f" · ⚠️ falta {'/'.join(flags)}" if flags else ""
     return f"{row['dt']:%d %b %Y, %H:%M} — {row['filename']}{flag}"
 
 
@@ -176,8 +247,17 @@ with img_col:
     else:
         st.info(f"No se encontró la imagen convertida en `{jpeg_path}`.")
 
+    crop_cols = st.columns(len(FUEL_COLUMNS))
+    for c, fuel_col in zip(crop_cols, FUEL_COLUMNS):
+        crop_rel = selected_row.get(f"price_{fuel_col}_crop")
+        c.caption(FUEL_LABELS[fuel_col])
+        if pd.notna(crop_rel):
+            c.image(str(ROOT / crop_rel), width="stretch")
+        else:
+            c.caption("no ubicado")
+
 with form_col:
-    st.markdown(f"**Origen del dato actual:** {'Auto (OCR)' if selected_row['data_source'] == 'ocr' else 'Revisado manualmente'}")
+    st.markdown(f"**Tu carga (Súper):** {'Auto (OCR)' if selected_row['data_source'] == 'ocr' else 'Revisado manualmente'}")
     if selected_row["needs_review"] and selected_row["data_source"] != "manual_override":
         st.warning(f"Motivo de revisión: {selected_row['review_reason']}")
     if pd.notna(selected_row.get("total_raw")) or pd.notna(selected_row.get("gallons_raw")):
@@ -205,7 +285,7 @@ with form_col:
             "Nota (opcional)",
             placeholder="Ej: confirmado visualmente, el dígito de las milésimas estaba tapado por brillo",
         )
-        submitted = st.form_submit_button("Guardar corrección", icon=":material/save:", type="primary")
+        submitted = st.form_submit_button("Guardar carga", icon=":material/save:", type="primary")
 
     if submitted:
         if gallons_input <= 0:
@@ -219,6 +299,41 @@ with form_col:
             )
             st.cache_data.clear()
             st.success(f"Guardado. {selected_row['filename']} ahora usa el valor revisado.")
+            st.rerun()
+
+    st.markdown("**Precios del tablero**")
+    st.caption("Miralos en la foto de arriba (parte inferior del surtidor) y confirmá los 4.")
+    with st.form("board_review_form", border=False):
+        board_inputs = {}
+        b1, b2 = st.columns(2)
+        for i, fuel_col in enumerate(FUEL_COLUMNS):
+            target = b1 if i % 2 == 0 else b2
+            current = selected_row.get(f"price_{fuel_col}_gtq")
+            board_inputs[fuel_col] = target.number_input(
+                FUEL_LABELS[fuel_col],
+                min_value=0.0,
+                value=float(current) if pd.notna(current) else 0.0,
+                step=0.01,
+                format="%.2f",
+            )
+        board_note_input = st.text_area(
+            "Nota (opcional)",
+            placeholder="Ej: leído directo de la foto, sin dudas",
+            key="board_note",
+        )
+        board_submitted = st.form_submit_button("Guardar precios del tablero", icon=":material/save:")
+
+    if board_submitted:
+        if any(v <= 0 for v in board_inputs.values()):
+            st.error("Los 4 precios deben ser mayores a 0.")
+        else:
+            save_price_board_override(
+                filename=selected_row["filename"],
+                prices_gtq=board_inputs,
+                note=board_note_input or "Confirmado manualmente desde el dashboard",
+            )
+            st.cache_data.clear()
+            st.success(f"Guardado. Precios del tablero de {selected_row['filename']} confirmados.")
             st.rerun()
 
 st.divider()

@@ -46,3 +46,19 @@ def flag_dataset(df: pd.DataFrame) -> pd.DataFrame:
         add_reason(statistical_outlier, "price_deviates_from_median")
 
     return df
+
+
+PRICE_BOARD_GTQ_COLUMNS = ["price_diesel_gtq", "price_regular_gtq", "price_super_gtq", "price_vpower_gtq"]
+
+
+def flag_board_prices(df: pd.DataFrame) -> pd.DataFrame:
+    """Flag rows where any of the four price-board fuels hasn't been
+    confirmed by a human yet (see PriceBoardReading -- these are never
+    auto-read). Independent of `needs_review`/`review_reason`, which only
+    cover the user's own pump total/gallons."""
+    df = df.copy()
+    df["board_needs_review"] = df[PRICE_BOARD_GTQ_COLUMNS].isna().any(axis=1)
+    df["board_review_reason"] = df["board_needs_review"].map(
+        {True: "board_prices_unconfirmed", False: ""}
+    )
+    return df

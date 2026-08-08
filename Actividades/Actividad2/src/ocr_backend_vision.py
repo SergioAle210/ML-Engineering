@@ -25,6 +25,8 @@ from Foundation import NSURL
 from PIL import Image
 
 from src.ocr_common import (
+    FUEL_TYPES,
+    PriceBoardReading,
     PumpReading,
     digits_only,
     parse_gallons_from_digits,
@@ -158,5 +160,68 @@ def read_pump_display(jpeg_path: Path) -> PumpReading:
     if reading.total_gtq is not None and reading.gallons:
         reading.price_per_gallon_gtq = round(reading.total_gtq / reading.gallons, 4)
         reading.parse_ok = True
+
+    return reading
+
+
+# The price LCD for each fuel sits a short distance directly above its
+# printed fuel-name label, in the same column -- these offsets (as a
+# fraction of image size) were measured by hand against a real photo of
+# this station's board (see README, Fase 2). They won't transfer to a
+# differently laid out board.
+PRICE_LCD_ABOVE_LABEL = (0.09, 0.21)  # (dy_min, dy_max) above the label's y
+PRICE_LCD_X_PAD = 0.035
+
+
+def _bbox_center(bbox) -> tuple[float, float]:
+    return bbox.origin.x + bbox.size.width / 2, bbox.origin.y + bbox.size.height / 2
+
+
+def _price_lcd_crop_box(im: Image.Image, label_bbox) -> tuple[int, int, int, int]:
+    W, H = im.size
+    x, y, w = label_bbox.origin.x, label_bbox.origin.y, label_bbox.size.width
+    dy_min, dy_max = PRICE_LCD_ABOVE_LABEL
+    x0n, x1n = x - PRICE_LCD_X_PAD, x + w + PRICE_LCD_X_PAD
+    y0n, y1n = y + dy_min, y + dy_max
+    px0, px1 = max(int(x0n * W), 0), min(int(x1n * W), W)
+    py0, py1 = max(int((1 - y1n) * H), 0), min(int((1 - y0n) * H), H)
+    return px0, py0, px1, py1
+
+
+def read_price_board(jpeg_path: Path, crops_dir: Path) -> PriceBoardReading:
+    """Locate the station's posted price-per-gallon board (one small LCD per
+    fuel type: Diesel/Regular/Super/V-Power) in a photo that also contains
+    the main pump display, and save a close-up crop of each price LCD for a
+    human to read.
+
+    These LCDs are far smaller and blurrier than the main "Esta Venta"
+    display, and neither Vision nor Tesseract read them reliably -- so
+    unlike read_pump_display, this never parses a digit value on its own.
+    It only finds each fuel's printed name label (accurate-level OCR over
+    the whole image, matched case-insensitively) and crops the LCD expected
+    directly above it. A best-effort single OCR pass on that crop is kept
+    as `prices_raw` purely as a hint for the reviewer, not a trusted result.
+    """
+    reading = PriceBoardReading()
+    results = _run_ocr(_load_cg_image(jpeg_path), level=ACCURATE, lang_correction=True)
+    im = Image.open(jpeg_path)
+    crops_dir.mkdir(parents=True, exist_ok=True)
+
+    for fuel in FUEL_TYPES:
+        label = next(
+            (r for r in results if fuel.replace("-", "") in r[0].lower().replace("-", "").replace(" ", "")),
+            None,
+        )
+        if not label:
+            reading.notes.append(f"{fuel}_label_not_found")
+            continue
+
+        crop = im.crop(_price_lcd_crop_box(im, label[2]))
+        crop_path = crops_dir / f"{jpeg_path.stem}_{fuel}.jpg"
+        crop.resize((crop.width * 3, crop.height * 3), Image.LANCZOS).save(crop_path, "JPEG", quality=92)
+        reading.crop_paths[fuel] = str(crop_path.relative_to(crops_dir.parent.parent.parent))
+
+        hint = next((text for text, _, _ in _run_ocr(_pil_to_cg(crop), level=FAST) if digits_only(text)), None)
+        reading.prices_raw[fuel] = hint
 
     return reading
