@@ -12,7 +12,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.pipeline import FUEL_COLUMNS, save_manual_override, save_price_board_override
+from src.pipeline import FUEL_COLUMNS, build_public_export, save_manual_override, save_price_board_override
 
 ROOT = Path(__file__).resolve().parent
 DATASET_CSV = ROOT / "data" / "processed" / "gasolina_dataset.csv"
@@ -46,7 +46,7 @@ with st.sidebar:
     st.subheader("Descargar datos")
     st.download_button(
         "Bitácora completa (.csv)",
-        data=DATASET_CSV.read_bytes(),
+        data=build_public_export(df).to_csv(index=False).encode("utf-8"),
         file_name="gasolina_dataset.csv",
         mime="text/csv",
         width="stretch",

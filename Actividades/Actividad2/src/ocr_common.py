@@ -16,6 +16,18 @@ EXPECTED_TOTAL_GTQ = 150.00
 # lowercase and free of accents.
 FUEL_TYPES = ["diesel", "regular", "super", "v-power"]
 
+# How far an OCR-corroborated price for Diesel/Regular/V-Power is allowed to
+# drift from Súper's price before it's rejected as a misread. Súper's own
+# price is never guessed -- the user always fills up on Súper for a fixed
+# Q150.00 (see EXPECTED_TOTAL_GTQ), so it's known exactly from
+# price_per_gallon_gtq. The other three grades at this station have
+# historically differed from it by ~1-2 GTQ, never more; this tolerance
+# exists to catch OCR garbage (e.g. a misread digit turning "43.19" into
+# "77.19"), not to model real price relationships between grades -- it does
+# NOT assume a fixed price ordering between fuels, since real photos from
+# this station have shown Diesel priced above V-Power.
+PRICE_BOARD_TOLERANCE_GTQ = 3.0
+
 
 @dataclass
 class PumpReading:
@@ -61,6 +73,13 @@ def parse_gallons_from_digits(digits: str) -> float | None:
     if len(digits) != 4:
         return None
     return int(digits) / 1000
+
+
+def parse_price_from_digits(digits: str) -> float | None:
+    # Price-board format is always dd.dd (two whole digits, two decimals).
+    if len(digits) != 4:
+        return None
+    return int(digits) / 100
 
 
 def pick_corroborated(candidates: list[str], min_len: int = 3) -> str | None:
