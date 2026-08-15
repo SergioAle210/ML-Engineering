@@ -13010,6 +13010,33 @@ gradient_boosting
 </div>
 </div>
 </div>
+</div>
+<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell" id="cell-id=728b3328">
+<div class="jp-Cell-inputWrapper" tabindex="0">
+<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
+</div>
+<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
+</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
+<h3 id="Qu%C3%A9-hiperpar%C3%A1metro-se-calibra-en-cada-modelo,-y-por-qu%C3%A9">Qué hiperparámetro se calibra en cada modelo, y por qué<a class="anchor-link" href="#Qu%C3%A9-hiperpar%C3%A1metro-se-calibra-en-cada-modelo,-y-por-qu%C3%A9">¶</a></h3><p><strong><code>logistic_regression</code></strong></p>
+<ul>
+<li><code>C</code> (<code>[0.01, 0.1, 1, 10]</code>): controla la fuerza de regularización (inverso — <code>C</code> chico = más regularización). Es el hiperparámetro que más mueve el resultado en un modelo lineal simple: muy poca regularización puede sobreajustar a ruido de las features, demasiada puede quedarse corta para capturar el patrón real. El resto (<code>penalty</code>, <code>solver</code>) se deja en su valor por defecto porque no aporta suficiente variación para justificar ampliar el grid de un modelo ya simple.</li>
+</ul>
+<p><strong><code>random_forest</code></strong></p>
+<ul>
+<li><code>n_estimators</code> (<code>[100, 200, 400]</code>): cantidad de árboles del bosque. Más árboles reduce la varianza del promedio (menos ruido entre corridas), a costa de tiempo de cómputo; se busca el punto donde ya no mejora.</li>
+<li><code>max_depth</code> (<code>[None, 5, 10, 20]</code>): profundidad máxima de cada árbol. <code>None</code> = sin límite (riesgo de sobreajuste, cada árbol memoriza casos particulares); valores chicos limitan la complejidad. Es el control principal del balance sesgo/varianza en Random Forest.</li>
+<li><code>min_samples_leaf</code> (<code>[1, 2, 4]</code>): mínimo de clientes requeridos en la hoja final de una rama. Hojas con muy pocos casos tienden a basarse en ejemplos aislados en vez de un patrón generalizable — otro freno anti-sobreajuste, independiente de la profundidad.</li>
+</ul>
+<p><strong><code>gradient_boosting</code></strong></p>
+<ul>
+<li><code>n_estimators</code> (<code>[100, 200]</code>): cantidad de árboles encadenados (etapas de boosting).</li>
+<li><code>learning_rate</code> (<code>[0.01, 0.1, 0.2]</code>): cuánto corrige cada árbol nuevo el error del árbol anterior. Está directamente acoplado con <code>n_estimators</code> — una tasa de aprendizaje baja necesita más etapas para converger al mismo desempeño — por eso ambos se calibran juntos.</li>
+<li><code>max_depth</code> (<code>[2, 3, 4]</code>): en boosting se usan árboles poco profundos a propósito ("weak learners"); a diferencia de Random Forest, este método suma muchos árboles simples en vez de pocos árboles complejos, así que no tiene sentido probar profundidades grandes como en RF.</li>
+</ul>
+<p><strong>Por qué se calibran justo estos y no todos los hiperparámetros disponibles:</strong> cada familia de modelo expone muchos más parámetros en scikit-learn, pero se seleccionaron los 1–3 que más impacto tienen en el balance sesgo/varianza de cada algoritmo (regularización en el modelo lineal; profundidad y cantidad de árboles en los modelos basados en árboles). Ampliar el grid a todos los parámetros crece de forma combinatoria sin aportar señal proporcional — un grid más chico y bien elegido es más barato de correr y ya cubre las decisiones que más cambian el resultado.</p>
+</div>
+</div>
+</div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell" id="cell-id=a49992dd">
 <div class="jp-Cell-inputWrapper" tabindex="0">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
@@ -15463,18 +15490,18 @@ a.param-doc-link::before {
 </td>
 <td class="fitted-att-type">ndarray[object](100, 1)</td>
 <td>[[DecisionTreeRegressor(max_depth=2,
-                        random_state=RandomState(MT19937) at 0x10EEF7540)],
+                        random_state=RandomState(MT19937) at 0x10EDAB440)],
  [DecisionTreeRegressor(max_depth=2,
-                        random_state=RandomState(MT19937) at 0x10EEF7540)],
+                        random_state=RandomState(MT19937) at 0x10EDAB440)],
  [DecisionTreeRegressor(max_depth=2,
-                        random_state=RandomState(MT19937) at 0x10EEF7540)],
+                        random_state=RandomState(MT19937) at 0x10EDAB440)],
  ...,
  [DecisionTreeRegressor(max_depth=2,
-                        random_state=RandomState(MT19937) at 0x10EEF7540)],
+                        random_state=RandomState(MT19937) at 0x10EDAB440)],
  [DecisionTreeRegressor(max_depth=2,
-                        random_state=RandomState(MT19937) at 0x10EEF7540)],
+                        random_state=RandomState(MT19937) at 0x10EDAB440)],
  [DecisionTreeRegressor(max_depth=2,
-                        random_state=RandomState(MT19937) at 0x10EEF7540)]]</td>
+                        random_state=RandomState(MT19937) at 0x10EDAB440)]]</td>
 </tr>
 <tr class="default">
 <td class="param">
