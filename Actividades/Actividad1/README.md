@@ -57,6 +57,50 @@ pytest                              # tests/test_pipeline.py
 
 `verify_pipeline.py` prints `PIPELINE OK` plus hostname/platform/Python version — run it and screenshot the output on each machine as evidence the packaged pipeline runs unmodified across environments.
 
+## Microservices architecture (Docker Compose, medallion layers)
+
+The same pipeline is also packaged as four independent microservices, chained through named Docker volumes that mirror a medallion architecture:
+
+| Layer (volume) | Written by | Contains |
+|---|---|---|
+| `bronze` | `ingestion` | Raw CSV, exactly as fetched from the source. |
+| `silver` | `cleaning` | Extraction + filtering applied (`build_cleaning_pipeline`): business columns only, deduplicated, implausible rows dropped. |
+| `gold` | `training` | `model.joblib` (fitted preprocessing + classifier pipeline), `metrics.json`, and a `test_sample.csv` for smoke-testing the API. |
+
+```
+services/
+  ingestion/main.py   downloads the raw dataset -> bronze
+  cleaning/main.py    extraction + filtering, bronze -> silver
+  training/main.py    split + model fit + evaluation, silver -> gold
+  serving/main.py     FastAPI app serving predictions from the gold model
+docker/
+  pipeline.Dockerfile shared image for ingestion/cleaning/training (batch jobs)
+  serving.Dockerfile  adds fastapi/uvicorn for the long-lived API
+docker-compose.yml     wires the four services + bronze/silver/gold volumes
+```
+
+Each microservice only mounts the volumes it needs (bronze/silver mounted read-only downstream), so no service can accidentally write into a layer it doesn't own. `ingestion`, `cleaning`, and `training` are one-shot jobs chained with `depends_on: condition: service_completed_successfully`; `serving` stays up as an HTTP API once the gold layer exists.
+
+```bash
+docker compose up --build          # runs ingestion -> cleaning -> training, then starts serving on :8000
+curl localhost:8000/health
+curl localhost:8000/metrics
+curl -X POST localhost:8000/predict -H "Content-Type: application/json" -d '{
+  "tenure": 12, "MonthlyCharges": 70.5, "TotalCharges": 840.0, "SeniorCitizen": 0,
+  "gender": "Female", "Partner": "Yes", "Dependents": "No", "PhoneService": "Yes",
+  "MultipleLines": "No", "InternetService": "Fiber optic", "OnlineSecurity": "No",
+  "OnlineBackup": "Yes", "DeviceProtection": "No", "TechSupport": "No",
+  "StreamingTV": "Yes", "StreamingMovies": "No", "Contract": "Month-to-month",
+  "PaperlessBilling": "Yes", "PaymentMethod": "Electronic check"
+}'
+```
+
+Re-running `docker compose up` re-runs the whole chain (fresh ingestion -> cleaning -> training) before restarting `serving`, so the gold layer always reflects the latest data. To inspect an intermediate layer directly:
+
+```bash
+docker compose run --rm cleaning ls -la /data/silver
+```
+
 ## Notebook / diagram
 
 ```bash

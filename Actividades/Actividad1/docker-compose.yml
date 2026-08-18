@@ -1,0 +1,49 @@
+services:
+  ingestion:
+    build:
+      context: .
+      dockerfile: docker/pipeline.Dockerfile
+    command: ["services/ingestion/main.py"]
+    volumes:
+      - bronze:/data/bronze
+
+  cleaning:
+    build:
+      context: .
+      dockerfile: docker/pipeline.Dockerfile
+    command: ["services/cleaning/main.py"]
+    depends_on:
+      ingestion:
+        condition: service_completed_successfully
+    volumes:
+      - bronze:/data/bronze:ro
+      - silver:/data/silver
+
+  training:
+    build:
+      context: .
+      dockerfile: docker/pipeline.Dockerfile
+    command: ["services/training/main.py"]
+    depends_on:
+      cleaning:
+        condition: service_completed_successfully
+    volumes:
+      - silver:/data/silver:ro
+      - gold:/data/gold
+
+  serving:
+    build:
+      context: .
+      dockerfile: docker/serving.Dockerfile
+    depends_on:
+      training:
+        condition: service_completed_successfully
+    volumes:
+      - gold:/data/gold:ro
+    ports:
+      - "8000:8000"
+
+volumes:
+  bronze:
+  silver:
+  gold:
