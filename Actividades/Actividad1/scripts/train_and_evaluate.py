@@ -1,8 +1,9 @@
-"""Trains the baseline classifier and prints evaluation metrics.
+"""Trains the calibrated classifier (see `tuning.py`) and prints evaluation metrics.
 
 Covers Modeling + Evaluation on top of the Data Preparation pipeline, same
 spirit as verify_pipeline.py: run this after installing the package (editable
-or from the wheel) to reproduce metrics identically on any machine.
+or from the wheel) to reproduce metrics identically on any machine. To
+re-run the hyperparameter search itself, use scripts/tune_models.py instead.
 """
 from pathlib import Path
 

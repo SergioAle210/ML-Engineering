@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "data-prep-pipeline"
-version = "0.2.0"
-description = "Reusable scikit-learn data preparation pipeline (extraction, filtering, type-aware preprocessing) for the customer churn use case."
+version = "0.4.0"
+description = "Reusable scikit-learn data preparation pipeline (extraction, filtering, type-aware preprocessing, calibrated model) for the customer churn use case."
 readme = "README.md"
 requires-python = ">=3.9"
 authors = [
