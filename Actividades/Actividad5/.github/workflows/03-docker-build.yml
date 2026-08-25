@@ -1,0 +1,29 @@
+name: 05 - Docker build
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: pipeline
+            dockerfile: docker/pipeline.Dockerfile
+          - name: serving
+            dockerfile: docker/serving.Dockerfile
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build ${{ matrix.name }} image
+        uses: docker/build-push-action@v6
+        with:
+          context: Actividad5
+          file: Actividad5/${{ matrix.dockerfile }}
+          push: false
+          tags: churn-${{ matrix.name }}:ci

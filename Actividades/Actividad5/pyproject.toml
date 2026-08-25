@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "data-prep-pipeline"
+version = "0.4.0"
+description = "Reusable scikit-learn data preparation pipeline (extraction, filtering, type-aware preprocessing, calibrated model) for the customer churn use case."
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+    { name = "MLEng Actividad1 Team" }
+]
+dependencies = [
+    "scikit-learn>=1.3",
+    "pandas>=2.0",
+    "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+notebook = ["jupyter", "matplotlib"]
+dev = ["pytest"]
+
+[tool.setuptools.packages.find]
+where = ["src"]

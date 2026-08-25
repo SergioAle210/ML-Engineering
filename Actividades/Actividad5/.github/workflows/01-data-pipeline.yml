@@ -1,0 +1,103 @@
+name: 01 - Data pipeline (bronze -> silver -> gold)
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  ingestion:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install --no-cache-dir "pandas>=2.0"
+
+      - name: Run ingestion service
+        run: python Actividad5/services/ingestion/main.py
+        env:
+          BRONZE_DIR: ${{ github.workspace }}/Actividad5/data/bronze
+
+      - name: Upload bronze artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bronze-data
+          path: Actividad5/data/bronze/telco_customer_churn.csv
+          retention-days: 7
+
+  cleaning:
+    needs: ingestion
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install package
+        working-directory: Actividad5
+        run: pip install --no-cache-dir .
+
+      - name: Download bronze artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: bronze-data
+          path: Actividad5/data/bronze
+
+      - name: Run cleaning service
+        working-directory: Actividad5
+        run: python services/cleaning/main.py
+        env:
+          BRONZE_DIR: ${{ github.workspace }}/Actividad5/data/bronze
+          SILVER_DIR: ${{ github.workspace }}/Actividad5/data/silver
+
+      - name: Upload silver artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: silver-data
+          path: Actividad5/data/silver/clean_customers.csv
+          retention-days: 7
+
+  training:
+    needs: cleaning
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install package
+        working-directory: Actividad5
+        run: pip install --no-cache-dir . joblib
+
+      - name: Download silver artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: silver-data
+          path: Actividad5/data/silver
+
+      - name: Run training service
+        working-directory: Actividad5
+        run: python services/training/main.py
+        env:
+          SILVER_DIR: ${{ github.workspace }}/Actividad5/data/silver
+          GOLD_DIR: ${{ github.workspace }}/Actividad5/data/gold
+
+      - name: Upload gold artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gold-data
+          path: Actividad5/data/gold
+          retention-days: 7

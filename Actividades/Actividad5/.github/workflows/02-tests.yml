@@ -1,0 +1,24 @@
+name: 04 - Tests
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install package with dev dependencies
+        working-directory: Actividad5
+        run: pip install --no-cache-dir ".[dev]"
+
+      - name: Run test suite
+        working-directory: Actividad5
+        run: pytest -v
