@@ -23,7 +23,7 @@ jobs:
       - name: Build ${{ matrix.name }} image
         uses: docker/build-push-action@v6
         with:
-          context: Actividad5
-          file: Actividad5/${{ matrix.dockerfile }}
+          context: Actividades/Actividad5
+          file: Actividades/Actividad5/${{ matrix.dockerfile }}
           push: false
           tags: churn-${{ matrix.name }}:ci
