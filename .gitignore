@@ -1,4 +1,10 @@
 /venv
+.venv*/
+__pycache__/
+*.pyc
+build/
+dist/
+*.egg-info/
 .agents/
 .claude/
 .DS_Store
