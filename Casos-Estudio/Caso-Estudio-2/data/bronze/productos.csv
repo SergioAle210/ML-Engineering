@@ -1,0 +1,31 @@
+id,nombre,categoria,precio_normal,precio_en_puntos
+1,Big Mac,hamburguesas,35.95,2157
+2,Cuarto de libra,hamburguesas,38.90,2334
+3,Hamburguesa con queso,hamburguesas,18.00,1080
+4,Hamburguesa especial,hamburguesas,32.50,1950
+5,McPollo,pollo,32.00,1920
+6,McNuggets 6,pollo,28.50,1710
+7,Pollo crujiente,pollo,35.00,2100
+8,Sándwich de pollo especial,pollo,36.95,2217
+9,McMuffin huevo,desayunos,24.50,1470
+10,McMuffin salchicha,desayunos,26.95,1617
+11,Hotcakes,desayunos,22.00,1320
+12,Desayuno especial,desayunos,31.00,1860
+13,Papas pequeñas,acompañamientos,12.35,741
+14,Papas medianas,acompañamientos,16.50,990
+15,Papas grandes,acompañamientos,19.95,1197
+16,Papas especiales,acompañamientos,22.50,1350
+17,Café,bebidas,10.95,657
+18,Gaseosa,bebidas,12.00,720
+19,Jugo de naranja,bebidas,15.50,930
+20,Agua,bebidas,10.00,600
+21,McFlurry Oreo,postres,24.95,1497
+22,Sundae chocolate,postres,18.00,1080
+23,Cono,postres,8.00,480
+24,Pie de manzana,postres,15.00,900
+25,Ensalada de pollo,ensaladas,35.00,2100
+26,Ensalada verde,ensaladas,26.00,1560
+27,Ensalada mixta,ensaladas,29.50,1770
+28,Ensalada especial,ensaladas,32.95,1977
+1,Big Mac,hamburguesas,35.95,2157
+2,Cuarto de libra,hamburguesas,38.90,2334
