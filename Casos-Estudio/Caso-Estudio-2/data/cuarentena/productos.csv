@@ -1,0 +1,3 @@
+archivo_origen,fila_csv,id,nombre,categoria,precio_normal,precio_en_puntos,motivos
+productos.csv,30,1,Big Mac,hamburguesas,35.95,2157,duplicado_exacto
+productos.csv,31,2,Cuarto de libra,hamburguesas,38.90,2334,duplicado_exacto

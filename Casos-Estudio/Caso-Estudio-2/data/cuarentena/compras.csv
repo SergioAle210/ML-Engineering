@@ -1,0 +1,8 @@
+archivo_origen,fila_csv,id,cliente_id,restaurante_id,fecha_hora,monto_total,forma_pago,motivos
+compras.csv,20002,1,584,5,2025-01-01 06:00:40,66.45,tarjeta,duplicado_exacto
+compras.csv,20003,2,394,4,2025-01-01 06:03:32,26.00,tarjeta,duplicado_exacto
+compras.csv,20004,3,627,1,2025-01-01 06:04:26,131.75,tarjeta,duplicado_exacto
+compras.csv,20005,4,422,7,2025-01-01 06:09:12,15.50,efectivo,duplicado_exacto
+compras.csv,20006,5,588,4,2025-01-01 06:11:20,22.00,tarjeta,duplicado_exacto
+compras.csv,20007,20001,1,1,2025-03-31 22:59:59,-12.35,efectivo,monto_total_negativo
+compras.csv,20008,20002,1,1,2025-03-31 22:59:59,15.00,efectivo,contiene_linea_rechazada

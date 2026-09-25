@@ -1,0 +1,8 @@
+archivo_origen,fila_csv,id,compra_id,producto_id,cantidad,precio_unitario,subtotal,pagado_con_puntos,motivos
+lineas_compra.csv,49527,1,1,9,1,24.50,24.50,false,duplicado_exacto
+lineas_compra.csv,49528,2,1,12,1,31.00,31.00,false,duplicado_exacto
+lineas_compra.csv,49529,3,1,17,1,10.95,10.95,false,duplicado_exacto
+lineas_compra.csv,49530,4,2,26,1,26.00,26.00,false,duplicado_exacto
+lineas_compra.csv,49531,5,3,3,1,18.00,18.00,false,duplicado_exacto
+lineas_compra.csv,49532,49526,20001,13,1,-12.35,-12.35,false,linea_monetaria_sin_precio | precio_unitario_negativo | subtotal_negativo
+lineas_compra.csv,49533,49527,20002,999999,1,15.00,15.00,false,producto_inexistente_o_rechazado
