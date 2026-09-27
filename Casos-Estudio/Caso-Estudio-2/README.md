@@ -1,10 +1,20 @@
 # POC de puntos dinámicos de MiMcDonald's
 
-Implementación local del plan de [doc.md](doc.md). Están implementados la estructura del proyecto, la generación de datos sintéticos (notebook 01) y la limpieza Bronze → Silver (notebook 02). Los notebooks 03–05 contienen únicamente el alcance pendiente.
+Desarrollamos una prueba de concepto local para analizar un sistema de puntos dinámicos. Organizamos el trabajo en cinco etapas: generación sintética → limpieza → tablas de negocio → segmentación → reglas, movimientos e insights.
+
+Comparamos una política fija con una dinámica sobre las mismas compras sintéticas. Estudiamos la distribución de los incentivos y su emisión adicional de puntos; la medición de ventas incrementales requiere un piloto con datos reales.
 
 ## Preparación y ejecución
 
-Desde esta carpeta:
+Desde `Casos-Estudio/Caso-Estudio-2/`, en Windows PowerShell:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m jupyter lab
+```
+
+En Linux/macOS:
 
 ```bash
 python3 -m venv .venv
@@ -13,7 +23,15 @@ python -m pip install -r requirements.txt
 jupyter lab
 ```
 
-Abrir `notebooks/01_generar_datos.ipynb` y ejecutar todas sus celdas en orden; después, ejecutar `notebooks/02_bronze_a_silver.ipynb`. La generación usa solo la biblioteca estándar de Python; la limpieza usa DuckDB. Los notebooks pueden iniciarse desde la raíz del proyecto o desde `notebooks/`.
+Ejecutar todas las celdas de cada notebook en orden **01 → 02 → 03 → 04 → 05**, con el kernel del entorno preparado. Los notebooks pueden iniciarse desde la carpeta del caso o desde `notebooks/`. Si cambia una etapa, volver a ejecutar todas las posteriores. En particular, 03 reemplaza `perfil_clientes` sin segmento: después se requieren 04 y 05.
+
+| Notebook | Salidas principales |
+|---|---|
+| [01 — Generación](notebooks/01_generar_datos.ipynb) | Cinco CSV en Bronze |
+| [02 — Limpieza](notebooks/02_bronze_a_silver.ipynb) | Cinco Parquet en Silver y cinco CSV de cuarentena |
+| [03 — Gold](notebooks/03_silver_a_gold.ipynb) | `perfil_clientes`, `ventas_productos` |
+| [04 — Segmentación](notebooks/04_segmentacion_ml.ipynb) | Perfil con `segmento` y `afinidad_segmento_categoria` |
+| [05 — Puntos e insights](notebooks/05_puntos_e_insights.ipynb) | `reglas_puntos`, `movimientos_puntos`, comparación y gráficas |
 
 ## Estructura
 
@@ -21,7 +39,7 @@ Abrir `notebooks/01_generar_datos.ipynb` y ejecutar todas sus celdas en orden; d
 data/
   bronze/       # Cinco CSV sintéticos, incluidos errores intencionales
   silver/       # Cinco tablas limpias en Parquet
-  gold/         # Pendiente: tablas de negocio en Parquet
+  gold/         # Cinco tablas de negocio en Parquet al terminar 05
   cuarentena/   # Cinco CSV de rechazos con valores originales y motivos
 notebooks/
   01_generar_datos.ipynb
@@ -43,11 +61,11 @@ tests/
 - Montos calculados en centavos enteros. Cada línea monetaria acumula `ceil(subtotal × 10)` puntos; cada canje cuesta `precio_en_puntos × cantidad` y tiene precio monetario cero. El saldo se revisa antes del canje, sin usar puntos ganados en esa misma compra.
 - Se agregan al final 16 filas duplicadas (2 clientes, 2 productos, 2 restaurantes, 5 compras y 5 líneas), una compra y línea con monto negativo, y una compra y línea con producto inexistente. Los dos últimos casos usan identificadores nuevos; así los originales válidos quedan disponibles para la limpieza. Los conteos de los CSV superan por ello los de la base válida.
 
-El notebook 01 valida la base válida antes de introducir errores, vuelve a leer los CSV y comprueba que las anomalías exportadas sean exactamente las esperadas. También muestra el comportamiento de los perfiles y el desempeño de los productos rezagados. Reejecutarlo con la misma configuración sobrescribe únicamente los cinco CSV generados en Bronze, con contenido reproducible. Si cambia Bronze, se debe ejecutar de nuevo el notebook 02 para actualizar Silver y cuarentena.
+Validamos la base antes de introducir errores y releemos los CSV para comprobar las anomalías, los perfiles y el comportamiento de los productos rezagados. La misma configuración reproduce los archivos de Bronze. Los cambios en esta capa requieren volver a ejecutar las etapas posteriores.
 
 ## Limpieza Bronze → Silver
 
-El notebook 02 convierte tipos, elimina copias duplicadas y valida campos obligatorios, dominios, claves, referencias, fechas e importes con SQL en DuckDB. Los importes se guardan como `DECIMAL(12,2)`; los valores con precisión excesiva se rechazan sin redondearlos. Los duplicados exactos se comparan después de normalizar espacios y tipos; se conserva el primero. Si un ID tiene contenidos distintos, todas sus versiones van a cuarentena. Los correos compartidos entre clientes distintos también se rechazan.
+Convertimos tipos, eliminamos duplicados y validamos campos obligatorios, dominios, claves, referencias, fechas e importes con SQL en DuckDB. Los importes se guardan como `DECIMAL(12,2)`; los valores con precisión excesiva se rechazan sin redondearlos. Los duplicados exactos se comparan después de normalizar espacios y tipos; se conserva el primero. Si un ID tiene contenidos distintos, todas sus versiones van a cuarentena. Los correos compartidos entre clientes distintos también se rechazan.
 
 Se conserva la integridad de cada factura: una línea inválida (excepto una copia exacta), un detalle ausente o repetido, o un total que no coincide con la suma de las líneas provoca el rechazo de la compra completa. Los canjes tienen importe cero; una compra formada solo por canjes puede tener total cero. Se valida el precio efectivamente cobrado sin exigir que coincida con el precio actual del catálogo.
 
@@ -61,7 +79,7 @@ Cada CSV de cuarentena incluye las columnas originales, `archivo_origen`, `fila_
 | compras | 20,007 | 20,000 | 7 |
 | lineas_compra | 49,532 | 49,525 | 7 |
 
-Los 20 rechazos son los 16 duplicados y las dos compras inválidas con sus líneas. La ejecución verifica `Bronze = Silver + cuarentena`, las relaciones y los totales, la conservación de tipos y valores al releer Parquet y que los CSV de Bronze no cambien. Reejecutar reemplaza los mismos cinco Parquet y cinco CSV de cuarentena; Gold sigue pendiente.
+Los 20 rechazos son los 16 duplicados y las dos compras inválidas con sus líneas. Verificamos `Bronze = Silver + cuarentena`, las relaciones, los totales y la conservación de tipos y valores en Parquet. Las tablas limpias alimentan los perfiles de clientes, la segmentación y el cálculo de puntos.
 
 Las pruebas adicionales usan datos pequeños en carpetas temporales dentro de este proyecto, que se eliminan al terminar:
 
@@ -71,20 +89,54 @@ python -m unittest discover -s tests -v
 
 ## Segmentación ML
 
-El notebook 04 lee `perfil_clientes` de Gold y entrena K-means con 4 grupos (semilla `22434`, 20 inicializaciones) sobre recencia, frecuencia, gasto promedio y franja preferida. La franja se convierte en una columna por franja; todas las columnas se estandarizan y el bloque de franja se pondera por `1/√4` para que cuente como una sola variable y no domine la distancia. `categoria_preferida` solo se usa para interpretar los grupos.
+Entrenamos K-means con 4 grupos sobre `perfil_clientes`, con semilla `22434` y 20 inicializaciones. Utilizamos recencia, frecuencia, gasto promedio y franja preferida. La franja se convierte en una columna por franja; todas las columnas se estandarizan y el bloque de franja se pondera por `1/√4` para que cuente como una sola variable y no domine la distancia. `categoria_preferida` solo se usa para interpretar los grupos.
 
-Los grupos se nombran con reglas explícitas (menor frecuencia → Ocasionales; mayor proporción de mañana → Madrugadores; mayor recencia entre los restantes → En riesgo; el último → Leales) y se verifican contra las definiciones de `doc.md` §4.1. También se reportan silueta para k = 2…8 y la estabilidad frente a otras semillas (ARI). El notebook reescribe `data/gold/perfil_clientes.parquet` con `segmento` y crea `data/gold/afinidad_segmento_categoria.parquet` (4 segmentos × 7 categorías, meses 1–2).
+Interpretamos los grupos con reglas explícitas: menor frecuencia → Ocasionales; mayor proporción de mañana → Madrugadores; mayor recencia entre los restantes → En riesgo; el último → Leales. Evaluamos la silueta para k = 2…8 y la estabilidad frente a otras semillas mediante ARI. Guardamos en Gold los perfiles con su segmento y las 28 combinaciones de afinidad entre cuatro segmentos y siete categorías.
+
+La ejecución de referencia obtiene 250 Leales, 249 Madrugadores, 255 En riesgo y 246 Ocasionales; silueta 0.4280 y ARI mínimo 1.0000 en diez semillas alternativas. k = 6 obtiene una silueta mayor (0.4499); se mantienen cuatro grupos por la interpretación de negocio. Se exportan tablas, mientras el modelo y su preprocesamiento permanecen en memoria.
+
+## Puntos e insights
+
+Cruzamos productos rezagados con afinidades > 1.2 para asignar ×2. Si una categoría no tiene segmentos afines, dirigimos la regla de su producto rezagado a todos los clientes. Asignamos además ×2 en hamburguesas y pollo a Madrugadores, ×1.5 de cliente a En riesgo y ×1.25 a Ocasionales. Leales recibe únicamente los incentivos de producto que corresponden a su perfil.
+
+Se utiliza la mayor regla de producto (ID menor en empates), como máximo una regla de cliente y un tope combinado ×3. Los puntos finales se calculan con `ceil(subtotal × 10 × multiplicador)`, sin redondeo intermedio y usando `Decimal`. Enero–febrero conserva la política fija. Los canjes no acumulan y se debitan antes de acreditar los puntos de la misma compra.
+
+| Resultado | Valor con la semilla 22434 |
+|---|---:|
+| Reglas generadas | 8 |
+| Movimientos de enero–marzo | 49,525 |
+| Acumulaciones / canjes de todo el período | 47,030 / 2,495 |
+| Puntos emitidos en marzo, política fija | 4,080,306 |
+| Puntos emitidos en marzo, política dinámica | 4,271,226 |
+| Emisión adicional | 190,920 (+4.68 %) |
+| Puntos canjeados en marzo, ambas políticas | 1,417,116 |
+| Clientes con puntos extra / activos en marzo | 605 / 907 |
+| Saldo final mínimo, ambas políticas | 150 |
+
+Las gráficas muestran tamaños de segmento, rezagos, afinidades y emisión por segmento/producto. En riesgo concentra el 38.73 % de los puntos adicionales. Esta emisión es una medida en puntos: no equivale a costo en quetzales ni a ventas incrementales.
+
+Validamos los cálculos, la selección de reglas, la cobertura de líneas, la vigencia, el redondeo, los topes y los saldos cronológicos. Comprobamos que los Parquet conserven el esquema y el contenido de las tablas y que cada línea corresponda a un único movimiento.
+
+## Alcance de la reproducción
+
+La POC parte de saldo cero y usa un catálogo sintético fijo; acredita al terminar cada compra. No implementa topes diarios, caducidad, demora de acreditación, devoluciones ni todas las restricciones del programa real. Los tres meses de 2025 son fechas de simulación. La comparación conserva las compras y los canjes originales, sin simular una respuesta comercial a los incentivos.
+
+Calculamos los perfiles y las afinidades con clientes que tienen historial en la ventana y categorías que presentan ventas. El escenario cumple estas condiciones; el tratamiento de clientes nuevos o categorías sin compras queda fuera de esta simulación.
+
+El entorno de validación utiliza Python 3.12, DuckDB 1.5.5 y scikit-learn 1.9.0. La segmentación coincide con los resultados de referencia obtenidos con scikit-learn 1.9.1. Las semillas y el orden de ejecución permiten reproducir el escenario; `requirements.txt` no fija versiones exactas, por lo que la representación binaria de Parquet puede variar entre entornos.
 
 ## Versionado de datos (DVC)
 
-Se evaluó DVC y no se adopta en esta POC:
+Evaluamos DVC para relacionar versiones de código y datos, reproducir etapas y compartir distintas simulaciones mediante almacenamiento remoto. La propuesta incluye la conservación de perfiles, afinidades, reglas y movimientos asociados a cada escenario.
 
-- Los datos pesan unos 3 MB y son deterministas: el notebook 01 los regenera idénticos con la semilla, y los Parquet de Silver/Gold se reproducen ejecutando los notebooks en orden. Git ya los versiona sin problema.
-- DVC solo aporta si hay un almacenamiento remoto compartido (S3, GCS, Drive) al que todo el equipo tenga acceso; sin él, `dvc push/pull` no permite compartir nada y añade un paso más a la preparación.
-- El repositorio Git es el de todo el curso, así que DVC tendría que iniciarse como subproyecto (`dvc init --subdir`), y ejecutar las etapas con `dvc repro` requeriría convertir los notebooks en scripts o ejecutarlos con `papermill`/`nbconvert`. Para cinco notebooks que corren en segundos, el orden numerado cumple la función de orquestador (`doc.md` §2.2).
+Mantenemos los datos sintéticos en Git y planteamos DVC como una extensión de MLOps. Para su integración por etapas, proponemos agrupar la preparación de perfiles y la segmentación en una etapa Gold/ML, ya que ambas actualizan el mismo archivo. El almacenamiento compartido permite distribuir las versiones entre los integrantes del equipo.
 
-DVC sí se justificaría al pasar a datos reales: archivos grandes o con datos personales que no deben ir a Git, varias versiones de datos para comparar modelos, o reentrenamientos periódicos. En la migración propuesta a Databricks, las tablas Delta (con *time travel*) y MLflow (`doc.md` §4.4) cubren ese versionado de datos y modelos.
+## Entregables
 
-## Continuación del plan
+- [Informe del sistema](doc.md): arquitectura, modelo de datos, análisis, conclusiones, referencias e investigación DVC.
+- Réplica local ejecutable: notebooks 01–05 y sus archivos de datos.
+- Integración ML: notebook 04; aplicación de sus resultados y comparación: notebook 05.
+- Pruebas adicionales de Silver: `tests/test_silver.py`.
+- Repositorio: [SergioAle210/ML-Engineering](https://github.com/SergioAle210/ML-Engineering).
 
-03 calculará perfiles y ventas con los meses 1–2; 04 aplicará K-means y calculará afinidades; 05 generará reglas, movimientos e insights, aplicando los multiplicadores solo al mes 3. El saldo que usa el generador sirve para simular canjes coherentes; la tabla final `movimientos_puntos` se construirá en 05.
+Planteamos el piloto con grupo de control, la gestión de modelos con MLflow, la migración a Databricks y la adopción de DVC como extensiones para una operación con datos reales.
