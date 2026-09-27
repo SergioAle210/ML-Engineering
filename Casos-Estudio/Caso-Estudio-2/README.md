@@ -69,6 +69,22 @@ Las pruebas adicionales usan datos pequeños en carpetas temporales dentro de es
 python -m unittest discover -s tests -v
 ```
 
+## Segmentación ML
+
+El notebook 04 lee `perfil_clientes` de Gold y entrena K-means con 4 grupos (semilla `22434`, 20 inicializaciones) sobre recencia, frecuencia, gasto promedio y franja preferida. La franja se convierte en una columna por franja; todas las columnas se estandarizan y el bloque de franja se pondera por `1/√4` para que cuente como una sola variable y no domine la distancia. `categoria_preferida` solo se usa para interpretar los grupos.
+
+Los grupos se nombran con reglas explícitas (menor frecuencia → Ocasionales; mayor proporción de mañana → Madrugadores; mayor recencia entre los restantes → En riesgo; el último → Leales) y se verifican contra las definiciones de `doc.md` §4.1. También se reportan silueta para k = 2…8 y la estabilidad frente a otras semillas (ARI). El notebook reescribe `data/gold/perfil_clientes.parquet` con `segmento` y crea `data/gold/afinidad_segmento_categoria.parquet` (4 segmentos × 7 categorías, meses 1–2).
+
+## Versionado de datos (DVC)
+
+Se evaluó DVC y no se adopta en esta POC:
+
+- Los datos pesan unos 3 MB y son deterministas: el notebook 01 los regenera idénticos con la semilla, y los Parquet de Silver/Gold se reproducen ejecutando los notebooks en orden. Git ya los versiona sin problema.
+- DVC solo aporta si hay un almacenamiento remoto compartido (S3, GCS, Drive) al que todo el equipo tenga acceso; sin él, `dvc push/pull` no permite compartir nada y añade un paso más a la preparación.
+- El repositorio Git es el de todo el curso, así que DVC tendría que iniciarse como subproyecto (`dvc init --subdir`), y ejecutar las etapas con `dvc repro` requeriría convertir los notebooks en scripts o ejecutarlos con `papermill`/`nbconvert`. Para cinco notebooks que corren en segundos, el orden numerado cumple la función de orquestador (`doc.md` §2.2).
+
+DVC sí se justificaría al pasar a datos reales: archivos grandes o con datos personales que no deben ir a Git, varias versiones de datos para comparar modelos, o reentrenamientos periódicos. En la migración propuesta a Databricks, las tablas Delta (con *time travel*) y MLflow (`doc.md` §4.4) cubren ese versionado de datos y modelos.
+
 ## Continuación del plan
 
 03 calculará perfiles y ventas con los meses 1–2; 04 aplicará K-means y calculará afinidades; 05 generará reglas, movimientos e insights, aplicando los multiplicadores solo al mes 3. El saldo que usa el generador sirve para simular canjes coherentes; la tabla final `movimientos_puntos` se construirá en 05.
