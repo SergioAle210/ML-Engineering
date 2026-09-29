@@ -1,0 +1,4 @@
+# Sin esto el sdist (.tar.gz) no incluye los requirements y construir el wheel
+# a partir de él falla, porque pyproject.toml los necesita para leer las dependencias.
+include requirements.txt
+include requirements-dev.txt

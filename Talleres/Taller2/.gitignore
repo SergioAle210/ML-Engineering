@@ -1,0 +1,11 @@
+.venv*/
+venv/
+__pycache__/
+*.pyc
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+pipeline/data/
+.claude/

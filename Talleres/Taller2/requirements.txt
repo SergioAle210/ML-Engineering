@@ -1,0 +1,11 @@
+# Paquetes de un proyecto típico de Machine Learning.
+# Versiones fijadas (==) para que cualquiera reproduzca exactamente el mismo ambiente:
+#   python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
+numpy==2.5.3
+pandas==3.0.6
+scipy==1.18.1
+scikit-learn==1.9.1
+joblib==1.6.0
+matplotlib==3.11.2
+seaborn==0.13.2
+jupyter==1.1.1

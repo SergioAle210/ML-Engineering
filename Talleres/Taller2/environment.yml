@@ -1,0 +1,22 @@
+# Equivalente conda de requirements.txt.
+#   conda env create -f environment.yml
+#   conda activate taller2-ml
+# A diferencia de requirements.txt, aquí se fija también la versión de Python
+# (conda instala el intérprete) y se eligen los canales de donde se descargan los paquetes.
+name: taller2-ml
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - numpy
+  - pandas
+  - scipy
+  - scikit-learn
+  - joblib
+  - matplotlib
+  - seaborn
+  - jupyter
+  - pip
+  # Lo que no exista en conda se puede instalar con pip dentro del mismo archivo:
+  - pip:
+      - -e ./pipeline

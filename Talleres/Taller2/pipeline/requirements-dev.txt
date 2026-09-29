@@ -1,0 +1,3 @@
+# Herramientas de desarrollo (tests y empaquetado). Se exponen también como extra `[dev]`.
+pytest
+build

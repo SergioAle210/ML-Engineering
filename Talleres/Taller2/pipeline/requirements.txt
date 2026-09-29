@@ -1,0 +1,7 @@
+# Dependencias de ejecución del pipeline de scikit-learn (data_prep_pipeline).
+# pyproject.toml lee este archivo como fuente única de `dependencies`,
+# así que lo que se instala con `pip install -r` y lo que declara el paquete
+# nunca se desincronizan.
+scikit-learn>=1.1
+pandas>=1.5
+numpy>=1.21
