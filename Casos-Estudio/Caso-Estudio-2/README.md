@@ -33,6 +33,8 @@ Ejecutar todas las celdas de cada notebook en orden **01 → 02 → 03 → 04 �
 | [04 — Segmentación](notebooks/04_segmentacion_ml.ipynb) | Perfil con `segmento` y `afinidad_segmento_categoria` |
 | [05 — Puntos e insights](notebooks/05_puntos_e_insights.ipynb) | `reglas_puntos`, `movimientos_puntos`, comparación y gráficas |
 
+`requirements.txt` instala además el paquete local `segmentacion-clientes` (`-e .`), que contiene el pipeline de scikit-learn y sus entry points de consola (ver [Entry points](#entry-points-de-la-segmentación)).
+
 ## Estructura
 
 ```text
@@ -47,9 +49,16 @@ notebooks/
   03_silver_a_gold.ipynb
   04_segmentacion_ml.ipynb
   05_puntos_e_insights.ipynb
+src/
+  segmentacion_clientes/
+    pipeline.py   # sklearn Pipeline (preprocesamiento + K-means), nombres, afinidad y exportación
+    cli.py        # Funciones de los entry points de consola
+models/         # Modelo entrenado por segmentacion-entrenar (ignorado por Git)
+pyproject.toml  # Paquete segmentacion-clientes y declaración de [project.scripts]
 requirements.txt
 tests/
   test_silver.py
+  test_segmentacion.py
 ```
 
 ## Datos generados
@@ -93,7 +102,28 @@ Entrenamos K-means con 4 grupos sobre `perfil_clientes`, con semilla `22434` y 2
 
 Interpretamos los grupos con reglas explícitas: menor frecuencia → Ocasionales; mayor proporción de mañana → Madrugadores; mayor recencia entre los restantes → En riesgo; el último → Leales. Evaluamos la silueta para k = 2…8 y la estabilidad frente a otras semillas mediante ARI. Guardamos en Gold los perfiles con su segmento y las 28 combinaciones de afinidad entre cuatro segmentos y siete categorías.
 
-La ejecución de referencia obtiene 250 Leales, 249 Madrugadores, 255 En riesgo y 246 Ocasionales; silueta 0.4280 y ARI mínimo 1.0000 en diez semillas alternativas. k = 6 obtiene una silueta mayor (0.4499); se mantienen cuatro grupos por la interpretación de negocio. Se exportan tablas, mientras el modelo y su preprocesamiento permanecen en memoria.
+La ejecución de referencia obtiene 250 Leales, 249 Madrugadores, 255 En riesgo y 246 Ocasionales; silueta 0.4280 y ARI mínimo 1.0000 en diez semillas alternativas. k = 6 obtiene una silueta mayor (0.4499); se mantienen cuatro grupos por la interpretación de negocio. Se exportan tablas; el notebook mantiene el modelo en memoria y el entry point `segmentacion-entrenar` lo guarda además en `models/`.
+
+### Entry points de la segmentación
+
+El preprocesamiento y K-means forman un único `sklearn.pipeline.Pipeline` (`construir_pipeline` en `src/segmentacion_clientes/pipeline.py`). El notebook 04 importa ese mismo código, y `pyproject.toml` lo expone como comandos de consola mediante `[project.scripts]`:
+
+```toml
+[project.scripts]
+segmentacion-diagnostico = "segmentacion_clientes.cli:diagnostico"
+segmentacion-entrenar = "segmentacion_clientes.cli:entrenar"
+segmentacion-predecir = "segmentacion_clientes.cli:predecir"
+```
+
+Al instalar el paquete (`pip install -e .`, incluido en `requirements.txt`), pip crea estos ejecutables en el entorno. Desde la carpeta del caso, después de ejecutar 01–03:
+
+```bash
+segmentacion-diagnostico                            # inercia y silueta para k = 2…8
+segmentacion-entrenar --metricas metricas.json      # equivale al notebook 04: Gold + models/segmentacion_kmeans.joblib
+segmentacion-predecir --salida segmentos.csv        # aplica el modelo guardado a perfil_clientes (o a --entrada)
+```
+
+Todos aceptan `--datos` para indicar otra carpeta `data/`, y `--help` describe sus opciones. `segmentacion-entrenar` produce los mismos Parquet que el notebook 04, por lo que después se debe ejecutar 05. `tests/test_segmentacion.py` comprueba sobre una copia temporal de los datos que los entry points estén registrados, que reproduzcan Gold y que la predicción con el modelo guardado coincida con los segmentos.
 
 ## Puntos e insights
 
@@ -136,7 +166,8 @@ Mantenemos los datos sintéticos en Git y planteamos DVC como una extensión de 
 - [Informe del sistema](doc.md): arquitectura, modelo de datos, análisis, conclusiones, referencias e investigación DVC.
 - Réplica local ejecutable: notebooks 01–05 y sus archivos de datos.
 - Integración ML: notebook 04; aplicación de sus resultados y comparación: notebook 05.
-- Pruebas adicionales de Silver: `tests/test_silver.py`.
+- Pipeline de scikit-learn empaquetado con entry points: `pyproject.toml` y `src/segmentacion_clientes/`.
+- Pruebas adicionales: `tests/test_silver.py` y `tests/test_segmentacion.py`.
 - Repositorio: [SergioAle210/ML-Engineering](https://github.com/SergioAle210/ML-Engineering).
 
 Planteamos el piloto con grupo de control, la gestión de modelos con MLflow, la migración a Databricks y la adopción de DVC como extensiones para una operación con datos reales.

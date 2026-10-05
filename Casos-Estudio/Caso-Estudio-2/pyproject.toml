@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "segmentacion-clientes"
+version = "0.1.0"
+description = "Pipeline de scikit-learn para segmentar clientes del caso de estudio 2 (puntos dinámicos)."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "duckdb",
+    "joblib",
+    "numpy",
+    "pandas",
+    "pyarrow",
+    "scikit-learn",
+]
+
+# Entry points: comandos de consola que se instalan junto con el paquete.
+[project.scripts]
+segmentacion-diagnostico = "segmentacion_clientes.cli:diagnostico"
+segmentacion-entrenar = "segmentacion_clientes.cli:entrenar"
+segmentacion-predecir = "segmentacion_clientes.cli:predecir"
+
+[tool.setuptools.packages.find]
+where = ["src"]
