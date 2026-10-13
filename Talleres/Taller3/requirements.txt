@@ -3,6 +3,12 @@ scikit-learn
 pandas
 numpy
 matplotlib
+seaborn
 jupyter
+ipykernel
+nbformat
+nbconvert
 optuna
 xgboost
+playwright
+-e ../Taller2/pipeline
